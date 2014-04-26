@@ -1,26 +1,42 @@
 require 'faye'
 require 'pry-debugger'
+require 'slim'
 Faye::WebSocket.load_adapter('thin')
-bayeux = Faye::RackAdapter.new(:mount => '/faye')
 
-bayeux.on(:handshake) do |client_id|
+MOUNT_POINT = '/faye'
+
+Bayeux = Faye::RackAdapter.new(:mount => MOUNT_POINT)
+
+Bayeux.on(:handshake) do |client_id|
   puts "Handshaking. Client ID: #{client_id}."
 end
 
-bayeux.on(:subscribe) do |client_id, channel|
+Bayeux.on(:subscribe) do |client_id, channel|
   puts "Subscribing. Client ID: #{client_id}. Channel: #{channel}"
 end
 
-bayeux.on(:unsubscribe) do |client_id, channel|
+Bayeux.on(:unsubscribe) do |client_id, channel|
   puts "Unsubscribing. Client ID: #{client_id}. Channel: #{channel}"
 end
 
-bayeux.on(:publish) do |client_id, channel, data|
+Bayeux.on(:publish) do |client_id, channel, data|
   puts "Publishing. Client ID: #{client_id}. Channel: #{channel}. Data: #{data}."
 end
 
-bayeux.on(:disconnect) do |client_id|
+Bayeux.on(:disconnect) do |client_id|
   puts "Disconnecting. Client ID: #{client_id}."
 end
 
-run bayeux
+
+# binding.pry
+class DupDam
+  def self.call(env)
+    if env['PATH_INFO'] =~ /^#{MOUNT_POINT}/
+      Bayeux.call(env)
+    else
+      [200, {"Content-Type" => "text/html"}, [Slim::Template.new('index.slim').render]]
+    end
+  end
+end
+
+run DupDam
