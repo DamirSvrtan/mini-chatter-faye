@@ -28,23 +28,34 @@ html
                 input#new-message-content.form-control placeholder=("Enter message") type="content" 
               button.btn.btn-default type="submit"  Submit
   javascript:
+      var client = new Faye.Client('http://localhost:9292/faye', username);
+
+      // console.log(JSON.stringify(client['_options']));
+
+      // for(var propertyName in client) {
+      //   console.log(propertyName + ": " + client[propertyName]);
+      // }
       var username = "User_" + Math.floor((Math.random()*1000)+1);
-      var client = new Faye.Client('http://localhost:9292/faye');
-      var subscription = client.subscribe('/chat', function(message) {
-        alert(JSON.stringify(message));
+
+      client.publish('/new_user', {username: username});
+
+      var newUserSubscription = client.subscribe('/new_user', function(message) {
+        appendToMessageBox(message['username'], "connected");
       });
 
-      var publication = client.publish('/chat', {text: 'Hi there'});
-
-      publication.then(function() {
-        alert('Message received by server!');
-      }, function(error) {
-        alert('There was a problem: ' + error.message);
+      var chatSubscription = client.subscribe('/chat', function(message) {
+        appendToMessageBox(message['username'], message['message']);
       });
 
-      subscription.then(function() {
-        alert('SSSSSSSSUP');
-      });
+      //publication.then(function() {
+      //  alert('Message received by server!');
+      //}, function(error) {
+      //  alert('There was a problem: ' + error.message);
+      //});
+
+      // subscription.then(function() {
+      // alert('SSSSSSSSUP');
+      //});
 
       document.forms["new-message"].onsubmit = function(){
           var messageText = document.getElementById("new-message-content");
@@ -53,7 +64,8 @@ html
               'username': username,
               'message': messageText.value
             };
-            connection.send(JSON.stringify(newMessage));
+            client.publish('/chat',newMessage);
+            //connection.send(JSON.stringify(newMessage));
             messageText.value ='';
           }
           return false;

@@ -13,10 +13,14 @@ end
 
 Bayeux.on(:subscribe) do |client_id, channel|
   puts "Subscribing. Client ID: #{client_id}. Channel: #{channel}"
+  # client = Faye::Client.new('http://localhost:9292/faye')
+  # client.publish('/chat', 'username' => client_id, 'text' => 'Hello world')
 end
 
 Bayeux.on(:unsubscribe) do |client_id, channel|
   puts "Unsubscribing. Client ID: #{client_id}. Channel: #{channel}"
+  client = Faye::Client.new('http://localhost:9292/faye')
+  client.publish('/unsubscription', 'username' => client_id, 'text' => 'Hello world')
 end
 
 Bayeux.on(:publish) do |client_id, channel, data|
