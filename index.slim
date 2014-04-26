@@ -28,14 +28,30 @@ html
                 input#new-message-content.form-control placeholder=("Enter message") type="content" 
               button.btn.btn-default type="submit"  Submit
   javascript:
-      var client = new Faye.Client('http://localhost:9292/faye', username);
+      var client = new Faye.Client('http://localhost:9292/faye');
 
       // console.log(JSON.stringify(client['_options']));
 
-      // for(var propertyName in client) {
-      //   console.log(propertyName + ": " + client[propertyName]);
-      // }
+      for(var propertyName in client) {
+        //console.log(propertyName + ": " + JSON.stringify(client[propertyName]));
+        //for(var pr in client[propertyName]){
+        //  console.log(pr + "::: " + client[propertyName][pr])
+        //}
+      }
       var username = "User_" + Math.floor((Math.random()*1000)+1);
+      //var username = 'Aaaa';
+      GetUsername = {
+       outgoing: function(message, callback) {
+         console.log(JSON.stringify(message));
+         if (message['channel'] == '/meta/disconnect'){
+            message['username'] = window.username;
+         };
+         callback(message);
+       }
+      };
+      client.addExtension(GetUsername);
+      //alert(window.username);
+
 
       client.publish('/new_user', {username: username});
 
@@ -47,6 +63,17 @@ html
         appendToMessageBox(message['username'], message['message']);
       });
 
+      var userDisconnection = client.subscribe('/user_disconnection', function(message) {
+        appendToMessageBox(message['username'], "disconnected");
+      });
+
+      //window.onbeforeunload = function(){
+      //  client.publish('/user_disconnection', {username: username});
+      //  client.publish('/new_user', {username: username});
+      //  console.log("TU JEBOTE");
+      //  return "jesi a?";
+      //}
+
       //publication.then(function() {
       //  alert('Message received by server!');
       //}, function(error) {
@@ -54,8 +81,8 @@ html
       //});
 
       // subscription.then(function() {
-      // alert('SSSSSSSSUP');
-      //});
+      //   alert('SSSSSSSSUP');
+      // });
 
       document.forms["new-message"].onsubmit = function(){
           var messageText = document.getElementById("new-message-content");
