@@ -28,108 +28,67 @@ html
                 input#new-message-content.form-control placeholder=("Enter message") type="content" 
               button.btn.btn-default type="submit"  Submit
   javascript:
-      var client = new Faye.Client('http://localhost:9292/faye');
+    var client = new Faye.Client('http://localhost:9292/faye');
+    var username = "User_" + Math.floor((Math.random()*1000)+1);
 
-      // console.log(JSON.stringify(client['_options']));
+    SetUsername = {
+     outgoing: function(message, callback) {
+       if (message['channel'] == '/meta/disconnect'){
+          message['username'] = window.username;
+       };
+       callback(message);
+     }
+    };
+    client.addExtension(SetUsername);
 
-      for(var propertyName in client) {
-        //console.log(propertyName + ": " + JSON.stringify(client[propertyName]));
-        //for(var pr in client[propertyName]){
-        //  console.log(pr + "::: " + client[propertyName][pr])
-        //}
-      }
-      var username = "User_" + Math.floor((Math.random()*1000)+1);
-      //var username = 'Aaaa';
-      GetUsername = {
-       outgoing: function(message, callback) {
-         console.log(JSON.stringify(message));
-         if (message['channel'] == '/meta/disconnect'){
-            message['username'] = window.username;
-         };
-         callback(message);
-       }
-      };
-      client.addExtension(GetUsername);
-      //alert(window.username);
+    client.publish('/new_user', {username: username});
 
+    client.subscribe('/new_user', function(message) {
+      appendToMessageBox(message['username'], "connected");
+    });
 
-      client.publish('/new_user', {username: username});
+    client.subscribe('/chat', function(message) {
+      appendToMessageBox(message['username'], message['message']);
+    });
 
-      var newUserSubscription = client.subscribe('/new_user', function(message) {
-        appendToMessageBox(message['username'], "connected");
-      });
+    client.subscribe('/disconnection', function(message) {
+      appendToMessageBox(message['username'], "disconnected");
+    });
 
-      var chatSubscription = client.subscribe('/chat', function(message) {
-        appendToMessageBox(message['username'], message['message']);
-      });
+    document.forms["new-message"].onsubmit = function(){
+        var messageText = document.getElementById("new-message-content");
+        if(messageText.value != ''){
+          var newMessage = { 'username': username, 'message': messageText.value };
+          client.publish('/chat',newMessage);
+          messageText.value ='';
+        }
+        return false;
+    }
 
-      var userDisconnection = client.subscribe('/user_disconnection', function(message) {
-        appendToMessageBox(message['username'], "disconnected");
-      });
+    function appendToMessageBox(name, message){
+        var newContent = document.createElement('h4');
+        var nameLabel = document.createElement('span');
+        var labelClass = 'label label-';
 
-      //window.onbeforeunload = function(){
-      //  client.publish('/user_disconnection', {username: username});
-      //  client.publish('/new_user', {username: username});
-      //  console.log("TU JEBOTE");
-      //  return "jesi a?";
-      //}
+        if(message == "connected"){
+          labelClass += 'success';
+        }else if(message == "disconnected"){
+          labelClass += 'danger';
+        }else{
+          labelClass += 'primary';
+        }
 
-      //publication.then(function() {
-      //  alert('Message received by server!');
-      //}, function(error) {
-      //  alert('There was a problem: ' + error.message);
-      //});
+        nameLabel.className = labelClass;
+        nameLabel.innerHTML = name;
 
-      // subscription.then(function() {
-      //   alert('SSSSSSSSUP');
-      // });
+        var messageContent = document.createElement('span');
+        messageContent.className = "submited-message"
+        messageContent.innerHTML = message;
 
-      document.forms["new-message"].onsubmit = function(){
-          var messageText = document.getElementById("new-message-content");
-          if(messageText.value != ''){
-            var newMessage = {
-              'username': username,
-              'message': messageText.value
-            };
-            client.publish('/chat',newMessage);
-            //connection.send(JSON.stringify(newMessage));
-            messageText.value ='';
-          }
-          return false;
-      }
+        newContent.appendChild(nameLabel)
+        newContent.appendChild(messageContent)
 
-      function appendToMessageBox(name, message){
-          var newContent = document.createElement('h4');
-          var nameLabel = document.createElement('span');
-          var labelClass = 'label label-';
-
-          if(message == "connected"){
-            labelClass += 'success';
-          }else if(message == "disconnected"){
-            labelClass += 'danger';
-          }else{
-            labelClass += 'primary';
-          }
-
-          nameLabel.className = labelClass;
-          nameLabel.innerHTML = name;
-
-          var messageContent = document.createElement('span');
-          messageContent.className = "submited-message"
-          messageContent.innerHTML = message;
-
-          newContent.appendChild(nameLabel)
-          newContent.appendChild(messageContent)
-
-          var messageBox = document.getElementById("message-box");
-          messageBox.appendChild(newContent);
-          messageBox.scrollTop = messageBox.scrollHeight;
-      }
-
-
-  /   var connection = new WebSocket('ws://'+ location.host + '/?username=' + username);
-
-  /   connection.onmessage = function(e){
-  /     var response = JSON.parse(e.data);
-  /     appendToMessageBox(response.username, response.message);
-  /   }
+        var messageBox = document.getElementById("message-box");
+        messageBox.appendChild(newContent);
+        messageBox.scrollTop = messageBox.scrollHeight;
+    }
