@@ -1,6 +1,4 @@
 source "https://rubygems.org"
-
 gem 'rack'
-gem 'faye-websocket'
+gem 'faye'
 gem 'slim'
-gem 'pry-debugger'

@@ -1,5 +1,4 @@
 require 'faye'
-require 'pry-debugger'
 require 'slim'
 Faye::WebSocket.load_adapter('thin')
 
